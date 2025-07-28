@@ -22,6 +22,8 @@ export function endpointOllama(input: z.input<typeof endpointOllamaParametersSch
 			model,
 		});
 
+		console.log("prompt", prompt);
+
 		const parameters = { ...model.parameters, ...generateSettings };
 
 		const requestInfo = await fetch(`${url}/api/tags`, {
