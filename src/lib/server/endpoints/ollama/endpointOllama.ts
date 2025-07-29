@@ -2,6 +2,7 @@ import { buildPrompt } from "$lib/buildPrompt";
 import type { TextGenerationStreamOutput } from "@huggingface/inference";
 import type { Endpoint } from "../endpoints";
 import { z } from "zod";
+import fs from "fs";
 
 export const endpointOllamaParametersSchema = z.object({
 	weight: z.number().int().positive().default(1),
@@ -22,7 +23,9 @@ export function endpointOllama(input: z.input<typeof endpointOllamaParametersSch
 			model,
 		});
 
+		console.log("********");
 		console.log("prompt", prompt);
+		console.log("********");
 
 		const parameters = { ...model.parameters, ...generateSettings };
 
@@ -82,6 +85,16 @@ export function endpointOllama(input: z.input<typeof endpointOllamaParametersSch
 			let generatedText = "";
 			let tokenId = 0;
 			let stop = false;
+
+			try {
+				fs.appendFileSync(
+					"ollama_output.log",
+					`\n\n=================\nPROMPT:\n${prompt}\n\nRESPONSE:\n`
+				);
+			} catch (e) {
+				console.error("Failed to write to ollama_output.log", e);
+			}
+
 			while (!stop) {
 				// read the stream and log the outputs to console
 				const out = (await reader?.read()) ?? { done: false, value: undefined };
@@ -104,6 +117,12 @@ export function endpointOllama(input: z.input<typeof endpointOllamaParametersSch
 				if (!data.done) {
 					generatedText += data.response;
 
+					try {
+						fs.appendFileSync("ollama_output.log", data.response ?? "");
+					} catch (e) {
+						console.error("Failed to write to ollama_output.log", e);
+					}
+
 					yield {
 						token: {
 							id: tokenId++,
@@ -116,6 +135,11 @@ export function endpointOllama(input: z.input<typeof endpointOllamaParametersSch
 					} satisfies TextGenerationStreamOutput;
 				} else {
 					stop = true;
+					try {
+						fs.appendFileSync("ollama_output.log", "\n");
+					} catch (e) {
+						console.error("Failed to write to ollama_output.log", e);
+					}
 					yield {
 						token: {
 							id: tokenId++,

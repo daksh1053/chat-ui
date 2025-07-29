@@ -65,6 +65,8 @@ export async function generateQuery(messages: Message[]) {
 			},
 		})
 	);
-
+	console.log("********");
+	console.log("webQuery", webQuery);
+	console.log("********");
 	return webQuery.trim().replace(/^"|"$/g, "");
 }

@@ -82,13 +82,32 @@ export async function withPage<T>(
 		});
 
 		const res = await page
-			.goto(url, { waitUntil: "load", timeout: parseInt(config.WEBSEARCH_TIMEOUT) })
+			.goto(url, { waitUntil: "domcontentloaded", timeout: 10000 })
 			.catch(() => {
-				console.warn(
-					`Failed to load page within ${parseInt(config.WEBSEARCH_TIMEOUT) / 1000}s: ${url}`
+				logger.warn(
+					`Failed to load page within ${parseInt(config.WEBSEARCH_TIMEOUT) || 10000 / 1000}s: ${url}`
 				);
 			});
 
+		try {
+			const unconventionalCookieBtn = page.locator("button.call-to-action");
+			const hasUnconventionalCookieBtn = (await unconventionalCookieBtn.count()) > 0;
+
+			if (hasUnconventionalCookieBtn) {
+				await unconventionalCookieBtn.click();
+				await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+			} else {
+				// The cookie banner may be in a frame.
+				const frame = page.frames().find((f) => f.url().includes("https://consent.google.com"));
+				if (frame) {
+					await frame.click('button[aria-label="Reject all"]');
+					// Wait for navigation after clicking the button.
+					await page.waitForNavigation({ waitUntil: "domcontentloaded" });
+				}
+			}
+		} catch (e) {
+			logger.error(e, "Failed to click cookie button");
+		}
 		return await callback(page, res ?? undefined);
 	} finally {
 		await ctx.close();

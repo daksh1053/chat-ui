@@ -34,6 +34,9 @@ export async function* search(
 	}
 
 	const searchQuery = query ?? (await generateQuery(messages));
+	console.log("===============");
+	console.log("searchQuery", searchQuery);
+	console.log("===============");
 	yield makeGeneralUpdate({ message: `Searching ${getWebSearchProvider()}`, args: [searchQuery] });
 
 	// handle the global and (optional) rag lists
@@ -46,7 +49,12 @@ export async function* search(
 	);
 
 	const searchQueryWithFilters = `${filters} ${searchQuery}`;
+	console.log("searchQueryWithFilters|", searchQueryWithFilters, "|");
 	const searchResults = await searchWeb(searchQueryWithFilters).then(filterByBlockList);
+
+	console.log("===============");
+	console.log("searchResults", searchResults);
+	console.log("===============");
 
 	return {
 		searchQuery: searchQueryWithFilters,
